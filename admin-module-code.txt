@@ -1,0 +1,1617 @@
+]633;E;echo "# Course Management System - Admin Module Code";d8e1e68c-1687-40c6-894e-1c91eee184b7]633;C# Course Management System - Admin Module Code
+# Generated: Thu 08 May 2025 03:45:10 PM EAT
+
+
+
+==========================================
+FILE: src/app/admin/courses/CourseForm.tsx
+==========================================
+
+// File: app/admin/courses/CourseForm.tsx
+
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Course {
+  id?: number;
+  name: string;
+}
+
+interface CourseFormProps {
+  initialData?: Course | null;
+  isEditing: boolean;
+}
+
+export default function CourseForm({ initialData, isEditing }: CourseFormProps) {
+  const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+    }
+  }, [initialData]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    const courseData = { name };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/courses/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(courseData),
+        });
+      } else {
+        response = await fetch('/api/courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(courseData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} course`);
+      }
+
+      router.push('/admin/courses');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="name">Course Name:</label>
+        <input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          style={{ marginLeft: '5px', padding: '5px', width: '300px' }}
+        />
+      </div>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <button type="submit" disabled={isLoading} style={{ marginTop: '20px', padding: '10px 15px' }}>
+        {isLoading ? 'Saving...' : (isEditing ? 'Update Course' : 'Create Course')}
+      </button>
+    </form>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/courses/[courseId]/edit/page.tsx
+==========================================
+
+// 3. app/admin/courses/[courseId]/edit/page.tsx
+
+import React from 'react';
+import CourseForm from '../../CourseForm';
+
+interface Course {
+  id: number;
+  name: string;
+}
+
+async function getCourseById(id: string): Promise<Course | null> {
+  try {
+    const res = await fetch(`/api/courses/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch course: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditCoursePage({ params }: { params: { courseId: string } }) {
+  const course = await getCourseById(params.courseId);
+
+  if (!course) {
+    return <div>Course not found. <a href="/admin/courses">Go back to courses.</a></div>;
+  }
+
+  return (
+    <div>
+      <h1>Edit Course: {course.name}</h1>
+      <CourseForm initialData={course} isEditing={true} />
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/courses/[courseId]/page.tsx
+==========================================
+
+// 1. app/admin/courses/[courseId]/page.tsx
+import Link from 'next/link';
+import React from 'react';
+import { fetchApi } from '@/app/lib/api';
+
+interface Unit { id: number; name: string; }
+interface Semester { id: number; semester: string; units: Unit[]; }
+interface Year { id: number; year: number; semesters: Semester[]; }
+interface Course {
+  id: number;
+  name: string;
+  years: Year[];
+}
+
+async function getCourseDetails(id: string): Promise<Course | null> {
+  try {
+    return await fetchApi<Course>(`/api/courses/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function CourseDetailPage({ params }: { params: { courseId: string } }) {
+  const course = await getCourseDetails(params.courseId);
+
+  if (!course) {
+    return <div>Course not found.</div>;
+  }
+
+  return (
+    <div>
+      <Link href="/admin/courses" style={{marginBottom: '10px', display: 'block'}}>&larr; Back to Courses</Link>
+      <h1>Course: {course.name}</h1>
+      <p>ID: {course.id}</p>
+      
+      {/* Prominent Add Year button */}
+      <div style={{ margin: '20px 0' }}>
+        <Link 
+          href={`/admin/years/new?courseId=${course.id}`}
+          style={{
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            marginRight: '10px'
+          }}
+        >
+          + Add New Year
+        </Link>
+        <Link 
+          href={`/admin/courses/${course.id}/edit`}
+          style={{
+            backgroundColor: '#f0f0f0',
+            color: '#333',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            textDecoration: 'none'
+          }}
+        >
+          Edit Course
+        </Link>
+      </div>
+
+      <h2 style={{marginTop: '30px'}}>Years</h2>
+      {course.years && course.years.length > 0 ? (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {course.years.map((year) => (
+            <li key={year.id} style={{ 
+              margin: '10px 0', 
+              padding: '15px', 
+              border: '1px solid #eee', 
+              borderRadius: '4px',
+              backgroundColor: '#f9f9f9'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Link 
+                  href={`/admin/years/${year.id}`} 
+                  style={{ fontSize: '18px', fontWeight: 'bold', color: '#333', textDecoration: 'none' }}
+                >
+                  Academic Year: {year.year}
+                </Link>
+                <div>
+                  <Link 
+                    href={`/admin/years/${year.id}/edit`}
+                    style={{ marginRight: '10px', color: '#666' }}
+                  >
+                    Edit
+                  </Link>
+                  <Link 
+                    href={`/admin/semesters/new?yearId=${year.id}`}
+                    style={{ 
+                      backgroundColor: '#2196F3',
+                      color: 'white',
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    + Add Semester
+                  </Link>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div style={{ 
+          padding: '20px', 
+          backgroundColor: '#f5f5f5', 
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          <p>No years associated with this course yet.</p>
+          <p>Click the "Add New Year" button above to create one.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/courses/new/page.tsx
+==========================================
+
+// File: app/admin/courses/new/page.tsx
+
+import React from 'react';
+import CourseForm from '../CourseForm';
+
+export default function NewCoursePage() {
+  return (
+    <div>
+      <h1>Add New Course</h1>
+      <CourseForm isEditing={false} />
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/courses/page.tsx
+==========================================
+
+// 1. app/admin/courses/page.tsx
+
+import Link from 'next/link';
+import React from 'react';
+
+// Define a type for your Course based on your Prisma schema
+interface Course {
+  id: number;
+  name: string;
+  createdAt: string;
+  years?: Year[];
+}
+
+interface Year {
+  id: number;
+  year: number;
+}
+
+async function getCourses(): Promise<Course[]> {
+  try {
+    const res = await fetch(`/api/courses`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch courses: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export default async function CoursesPage() {
+  const courses = await getCourses();
+
+  return (
+    <div>
+      <h1>Manage Courses</h1>
+      <Link href="/admin/courses/new" style={{ marginBottom: '20px', display: 'inline-block' }}>
+        Add New Course
+      </Link>
+      {courses.length === 0 ? (
+        <p>No courses found.</p>
+      ) : (
+        <table border={1} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{padding: '8px', textAlign: 'left'}}>ID</th>
+              <th style={{padding: '8px', textAlign: 'left'}}>Name</th>
+              <th style={{padding: '8px', textAlign: 'left'}}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {courses.map((course) => (
+              <tr key={course.id}>
+                <td style={{padding: '8px'}}>{course.id}</td>
+                <td style={{padding: '8px'}}>{course.name}</td>
+                <td style={{padding: '8px'}}>
+                  <Link href={`/admin/courses/${course.id}`}>View</Link> |{' '}
+                  <Link href={`/admin/courses/${course.id}/edit`}>Edit</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/layout.tsx
+==========================================
+
+// File: app/admin/layout.tsx
+
+import Link from 'next/link';
+import React from 'react';
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <nav style={{ width: '200px', borderRight: '1px solid #ccc', padding: '20px' }}>
+        <h2>Admin Menu</h2>
+        <ul>
+          <li>
+            <Link href="/admin/courses">Courses</Link>
+          </li>
+          {/* Add more top-level navigation if needed, e.g., Users, Settings */}
+        </ul>
+      </nav>
+      <main style={{ flexGrow: 1, padding: '20px' }}>
+        {children}
+      </main>
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/semesters/new/page.tsx
+==========================================
+
+// 8. app/admin/semesters/new/page.tsx
+import React from 'react';
+import SemesterForm from '../SemesterForm';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+// Add a function to get year details for breadcrumb
+async function getYearInfo(yearId: string): Promise<{ id: number; year: number; courseId: number; course: { name: string } } | null> {
+  try {
+    return await fetchApi<{ id: number; year: number; courseId: number; course: { name: string } }>(`/api/years/${yearId}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function PageContent({ yearId }: { yearId?: string }) {
+    const parsedYearId = yearId ? parseInt(yearId, 10) : undefined;
+    if (parsedYearId === undefined || isNaN(parsedYearId)) {
+        return (
+          <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href="/admin/courses">&larr; Back to Courses</Link>
+            </div>
+            <div style={{ 
+              padding: '20px', 
+              backgroundColor: '#f44336', 
+              color: 'white',
+              borderRadius: '4px'
+            }}>
+              Error: Valid Year ID is required to add a new semester. 
+              <Link href="/admin/courses" style={{ color: 'white', textDecoration: 'underline', marginLeft: '5px' }}>
+                Select a course.
+              </Link>
+            </div>
+          </div>
+        );
+    }
+
+    // Get year info for breadcrumb
+    const yearInfo = await getYearInfo(yearId);
+  
+    return (
+        <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href={`/admin/years/${parsedYearId}`}>
+                &larr; Back to Year: {yearInfo?.year || `ID: ${parsedYearId}`}
+              </Link>
+              {yearInfo && (
+                <span style={{ marginLeft: '10px', color: '#666' }}>
+                  | Course: {yearInfo.course.name}
+                </span>
+              )}
+            </div>
+            <h1>Add New Semester</h1>
+            <SemesterForm isEditing={false} yearId={parsedYearId} />
+            <div style={{ marginTop: '20px', color: '#666' }}>
+              <p>After creating a semester, you'll be able to add units to it.</p>
+            </div>
+        </div>
+    );
+}
+
+export default function NewSemesterPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const yearId = typeof searchParams?.yearId === 'string' ? searchParams.yearId : undefined;
+  
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+        <PageContent yearId={yearId} />
+    </Suspense>
+  );
+}
+
+==========================================
+FILE: src/app/admin/semesters/SemesterForm.tsx
+==========================================
+
+// 5. app/admin/semesters/SemesterForm.tsx
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Semester {
+  id?: number;
+  semester: string;
+  yearId: number;
+}
+
+interface SemesterFormProps {
+  initialData?: Partial<Semester> | null;
+  isEditing: boolean;
+  yearId?: number;
+}
+
+export default function SemesterForm({ initialData, isEditing, yearId: propYearId }: SemesterFormProps) {
+  const [semester, setSemester] = useState('');
+  const [currentYearId, setCurrentYearId] = useState<number | undefined>(propYearId || initialData?.yearId);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setSemester(initialData.semester || '');
+    }
+    if (propYearId) {
+        setCurrentYearId(propYearId);
+    }
+  }, [initialData, propYearId]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
+
+    if (!currentYearId) {
+        setError('Year ID is missing.');
+        setIsLoading(false);
+        return;
+    }
+    if (semester === '') {
+        setError('Semester name is required.');
+        setIsLoading(false);
+        return;
+    }
+
+    const semesterData = { semester, yearId: currentYearId };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/semesters/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ semester: semesterData.semester }),
+        });
+      } else {
+        response = await fetch('/api/semesters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(semesterData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} semester`);
+      }
+      
+      // Show success message before redirecting
+      const result = await response.json();
+      setSuccessData(result);
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/semesters/${result.id}` : `/admin/semesters/${result.id}`);
+        router.refresh();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess && successData) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        backgroundColor: '#4CAF50', 
+        color: 'white',
+        borderRadius: '4px',
+        marginBottom: '20px'
+      }}>
+        <h3 style={{ margin: '0 0 10px 0' }}>Semester {isEditing ? 'Updated' : 'Created'} Successfully!</h3>
+        <p>Semester {successData.semester} has been {isEditing ? 'updated' : 'added'}.</p>
+        <p>You'll be redirected in a moment to {isEditing ? 'view the semester' : 'add units'}...</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="semester">Semester Name (e.g., Fall 2023):</label>
+        <input
+          type="text"
+          id="semester"
+          value={semester}
+          onChange={(e) => setSemester(e.target.value)}
+          required
+          style={{ 
+            marginLeft: '5px', 
+            padding: '8px', 
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            width: '300px'
+          }}
+        />
+      </div>
+      
+      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+      
+      <button 
+        type="submit" 
+        disabled={isLoading} 
+        style={{ 
+          marginTop: '20px', 
+          padding: '10px 15px', 
+          backgroundColor: '#4CAF50', 
+          color: 'white', 
+          border: 'none', 
+          borderRadius: '4px', 
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        {isLoading ? 'Saving...' : (isEditing ? 'Update Semester' : 'Create Semester')}
+      </button>
+      
+      {!isEditing && (
+        <p style={{ color: '#666', marginTop: '10px' }}>
+          After creating this semester, you'll be able to add units to it.
+        </p>
+      )}
+    </form>
+  );
+}
+
+==========================================
+FILE: src/app/admin/semesters/[semesterId]/edit/page.tsx
+==========================================
+
+// 7. app/admin/semesters/[semesterId]/edit/page.tsx
+
+import React from 'react';
+import SemesterForm from '../../SemesterForm';
+
+interface Semester {
+  id: number;
+  semester: string;
+  yearId: number;
+}
+
+async function getSemesterById(id: string): Promise<Semester | null> {
+  try {
+    const res = await fetch(`/api/semesters/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch semester: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditSemesterPage({ params }: { params: { semesterId: string } }) {
+  const semester = await getSemesterById(params.semesterId);
+
+  if (!semester) {
+    return <div>Semester not found. <a href="/admin/courses">Go back to courses.</a></div>;
+  }
+
+  return (
+    <div>
+      <h1>Edit Semester: {semester.semester}</h1>
+      <SemesterForm initialData={semester} isEditing={true} />
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/semesters/[semesterId]/page.tsx
+==========================================
+
+// 3. app/admin/semesters/[semesterId]/page.tsx
+import Link from 'next/link';
+import React from 'react';
+import { fetchApi } from '@/app/lib/api';
+
+interface Unit { id: number; name: string; }
+interface Year { id: number; year: number; courseId: number; }
+interface Course { id: number; name: string; }
+interface Semester {
+  id: number;
+  semester: string;
+  yearId: number;
+  year: Year & { course: Course };
+  units: Unit[];
+}
+
+async function getSemesterDetails(id: string): Promise<Semester | null> {
+  try {
+    return await fetchApi<Semester>(`/api/semesters/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function SemesterDetailPage({ params }: { params: { semesterId: string } }) {
+  const semester = await getSemesterDetails(params.semesterId);
+
+  if (!semester) {
+    return <div>Semester not found.</div>;
+  }
+
+  return (
+    <div>
+      <Link href={`/admin/years/${semester.yearId}`} style={{marginBottom: '10px', display: 'block'}}>
+        &larr; Back to Year: {semester.year.year}
+      </Link>
+      <h1>Semester: {semester.semester}</h1>
+      <p>ID: {semester.id}</p>
+      <p>Course: {semester.year.course.name}</p>
+      
+      {/* Prominent Add Unit button */}
+      <div style={{ margin: '20px 0' }}>
+        <Link 
+          href={`/admin/units/new?semesterId=${semester.id}`}
+          style={{
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            marginRight: '10px'
+          }}
+        >
+          + Add New Unit
+        </Link>
+        <Link 
+          href={`/admin/semesters/${semester.id}/edit`}
+          style={{
+            backgroundColor: '#f0f0f0',
+            color: '#333',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            textDecoration: 'none'
+          }}
+        >
+          Edit Semester
+        </Link>
+      </div>
+
+      <h2 style={{marginTop: '30px'}}>Units</h2>
+      {semester.units && semester.units.length > 0 ? (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {semester.units.map((unit) => (
+            <li key={unit.id} style={{ 
+              margin: '10px 0', 
+              padding: '15px', 
+              border: '1px solid #eee', 
+              borderRadius: '4px',
+              backgroundColor: '#f9f9f9'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Link 
+                  href={`/admin/units/${unit.id}`} 
+                  style={{ fontSize: '18px', fontWeight: 'bold', color: '#333', textDecoration: 'none' }}
+                >
+                  Unit: {unit.name}
+                </Link>
+                <Link 
+                  href={`/admin/units/${unit.id}/edit`}
+                  style={{ color: '#666' }}
+                >
+                  Edit
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div style={{ 
+          padding: '20px', 
+          backgroundColor: '#f5f5f5', 
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          <p>No units associated with this semester yet.</p>
+          <p>Click the "Add New Unit" button above to create one.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/units/new/page.tsx
+==========================================
+
+// 9. app/admin/units/new/page.tsx
+import React from 'react';
+import UnitForm from '../UnitForm';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+// Add a function to get semester details for breadcrumb
+async function getSemesterInfo(semesterId: string): Promise<{ 
+  id: number; 
+  semester: string; 
+  yearId: number; 
+  year: { 
+    year: number; 
+    courseId: number; 
+    course: { 
+      name: string 
+    } 
+  } 
+} | null> {
+  try {
+    return await fetchApi<any>(`/api/semesters/${semesterId}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function PageContent({ semesterId }: { semesterId?: string }) {
+    const parsedSemesterId = semesterId ? parseInt(semesterId, 10) : undefined;
+    if (parsedSemesterId === undefined || isNaN(parsedSemesterId)) {
+        return (
+          <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href="/admin/courses">&larr; Back to Courses</Link>
+            </div>
+            <div style={{ 
+              padding: '20px', 
+              backgroundColor: '#f44336', 
+              color: 'white',
+              borderRadius: '4px'
+            }}>
+              Error: Valid Semester ID is required to add a new unit. 
+              <Link href="/admin/courses" style={{ color: 'white', textDecoration: 'underline', marginLeft: '5px' }}>
+                Select a course.
+              </Link>
+            </div>
+          </div>
+        );
+    }
+
+    // Get semester info for breadcrumb
+    const semesterInfo = await getSemesterInfo(semesterId);
+  
+    return (
+        <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href={`/admin/semesters/${parsedSemesterId}`}>
+                &larr; Back to Semester: {semesterInfo?.semester || `ID: ${parsedSemesterId}`}
+              </Link>
+              {semesterInfo && (
+                <div style={{ marginTop: '5px', color: '#666' }}>
+                  Course: {semesterInfo.year.course.name} | 
+                  Year: {semesterInfo.year.year}
+                </div>
+              )}
+            </div>
+            <h1>Add New Unit</h1>
+            <UnitForm isEditing={false} semesterId={parsedSemesterId} />
+        </div>
+    );
+}
+
+export default function NewUnitPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const semesterId = typeof searchParams?.semesterId === 'string' ? searchParams.semesterId : undefined;
+  
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+        <PageContent semesterId={semesterId} />
+    </Suspense>
+  );
+}
+
+==========================================
+FILE: src/app/admin/units/UnitForm.tsx
+==========================================
+
+// 6. app/admin/units/UnitForm.tsx
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Unit {
+  id?: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+}
+
+interface UnitFormProps {
+  initialData?: Partial<Unit> | null;
+  isEditing: boolean;
+  semesterId?: number;
+}
+
+export default function UnitForm({ initialData, isEditing, semesterId: propSemesterId }: UnitFormProps) {
+  const [name, setName] = useState('');
+  const [content, setContent] = useState('');
+  const [currentSemesterId, setCurrentSemesterId] = useState<number | undefined>(
+    propSemesterId || initialData?.semesterId
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setContent(initialData.content || '');
+    }
+    if (propSemesterId) {
+      setCurrentSemesterId(propSemesterId);
+    }
+  }, [initialData, propSemesterId]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
+
+    if (!currentSemesterId) {
+      setError('Semester ID is missing.');
+      setIsLoading(false);
+      return;
+    }
+    if (name === '') {
+      setError('Unit name is required.');
+      setIsLoading(false);
+      return;
+    }
+
+    const unitData = { 
+      name, 
+      content,
+      semesterId: currentSemesterId 
+    };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/units/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: unitData.name,
+            content: unitData.content 
+          }),
+        });
+      } else {
+        response = await fetch('/api/units', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unitData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} unit`);
+      }
+      
+      // Show success message before redirecting
+      const result = await response.json();
+      setSuccessData(result);
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/units/${result.id}` : `/admin/units/${result.id}`);
+        router.refresh();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess && successData) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        backgroundColor: '#4CAF50', 
+        color: 'white',
+        borderRadius: '4px',
+        marginBottom: '20px'
+      }}>
+        <h3 style={{ margin: '0 0 10px 0' }}>Unit {isEditing ? 'Updated' : 'Created'} Successfully!</h3>
+        <p>Unit {successData.name} has been {isEditing ? 'updated' : 'added'}.</p>
+        <p>You'll be redirected in a moment...</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="name">Unit Name:</label>
+        <input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          style={{ 
+            marginLeft: '5px', 
+            padding: '8px', 
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            width: '300px'
+          }}
+        />
+      </div>
+      <div style={{ marginTop: '10px' }}>
+        <label htmlFor="content">Content:</label>
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          style={{ 
+            marginLeft: '5px', 
+            padding: '8px', 
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            width: '300px', 
+            minHeight: '150px', 
+            verticalAlign: 'top' 
+          }}
+        />
+      </div>
+      
+      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+      
+      <button 
+        type="submit" 
+        disabled={isLoading} 
+        style={{ 
+          marginTop: '20px', 
+          padding: '10px 15px', 
+          backgroundColor: '#4CAF50', 
+          color: 'white', 
+          border: 'none', 
+          borderRadius: '4px', 
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        {isLoading ? 'Saving...' : (isEditing ? 'Update Unit' : 'Create Unit')}
+      </button>
+    </form>
+  );
+}
+
+==========================================
+FILE: src/app/admin/units/[unitId]/edit/page.tsx
+==========================================
+
+// 9. app/admin/units/[unitId]/edit/page.tsx
+
+import React from 'react';
+import UnitForm from '../../UnitForm';
+
+interface Unit {
+  id: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+}
+
+async function getUnitById(id: string): Promise<Unit | null> {
+  try {
+    const res = await fetch(`/api/units/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch unit: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditUnitPage({ params }: { params: { unitId: string } }) {
+  const unit = await getUnitById(params.unitId);
+
+  if (!unit) {
+    return <div>Unit not found. <a href="/admin/courses">Go back to courses.</a></div>;
+  }
+
+  return (
+    <div>
+      <h1>Edit Unit: {unit.name}</h1>
+      <UnitForm initialData={unit} isEditing={true} />
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/units/[unitId]/page.tsx
+==========================================
+
+// 8. app/admin/units/[unitId]/page.tsx
+
+import Link from 'next/link';
+import React from 'react';
+
+interface Semester { 
+  id: number; 
+  semester: string; 
+  yearId: number;
+  year: { 
+    id: number; 
+    year: number; 
+    courseId: number;
+    course: { 
+      id: number; 
+      name: string; 
+    } 
+  } 
+}
+
+interface Unit {
+  id: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+  semester: Semester;
+}
+
+async function getUnitDetails(id: string): Promise<Unit | null> {
+  try {
+    const res = await fetch(`/api/units/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch unit details: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function UnitDetailPage({ params }: { params: { unitId: string } }) {
+  const unit = await getUnitDetails(params.unitId);
+
+  if (!unit) {
+    return <div>Unit not found.</div>;
+  }
+
+  return (
+    <div>
+      <Link href={`/admin/semesters/${unit.semesterId}`} style={{marginBottom: '10px', display: 'block'}}>
+        &larr; Back to Semester: {unit.semester.semester}
+      </Link>
+      <h1>Unit: {unit.name}</h1>
+      <p>ID: {unit.id}</p>
+      <p>Course: {unit.semester.year.course.name}</p>
+      <p>Year: {unit.semester.year.year}</p>
+      
+      <h2>Content:</h2>
+      <div style={{ 
+        padding: '15px', 
+        border: '1px solid #eee', 
+        borderRadius: '5px',
+        backgroundColor: '#f9f9f9',
+        marginTop: '10px',
+        whiteSpace: 'pre-wrap'
+      }}>
+        {unit.content || <em>No content available</em>}
+      </div>
+      
+      <div style={{ marginTop: '20px' }}>
+        <Link href={`/admin/units/${unit.id}/edit`}>Edit Unit</Link>
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/years/new/page.tsx
+==========================================
+
+// 7. app/admin/years/new/page.tsx
+import React from 'react';
+import YearForm from '../YearForm';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+// Add a function to get course details for breadcrumb
+async function getCourseInfo(courseId: string): Promise<{ id: number; name: string } | null> {
+  try {
+    return await fetchApi<{ id: number; name: string }>(`/api/courses/${courseId}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function PageContent({ courseId }: { courseId?: string }) {
+    const parsedCourseId = courseId ? parseInt(courseId, 10) : undefined;
+    if (parsedCourseId === undefined || isNaN(parsedCourseId)) {
+        return (
+          <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href="/admin/courses">&larr; Back to Courses</Link>
+            </div>
+            <div style={{ 
+              padding: '20px', 
+              backgroundColor: '#f44336', 
+              color: 'white',
+              borderRadius: '4px'
+            }}>
+              Error: Valid Course ID is required to add a new year. 
+              <Link href="/admin/courses" style={{ color: 'white', textDecoration: 'underline', marginLeft: '5px' }}>
+                Select a course.
+              </Link>
+            </div>
+          </div>
+        );
+    }
+
+    // Get course info for breadcrumb
+    const courseInfo = await getCourseInfo(courseId);
+  
+    return (
+        <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href={`/admin/courses/${parsedCourseId}`}>
+                &larr; Back to Course: {courseInfo?.name || `ID: ${parsedCourseId}`}
+              </Link>
+            </div>
+            <h1>Add New Year</h1>
+            <YearForm isEditing={false} courseId={parsedCourseId} />
+            <div style={{ marginTop: '20px', color: '#666' }}>
+              <p>After creating a year, you'll be able to add semesters to it.</p>
+            </div>
+        </div>
+    );
+}
+
+export default function NewYearPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const courseId = typeof searchParams?.courseId === 'string' ? searchParams.courseId : undefined;
+  
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+        <PageContent courseId={courseId} />
+    </Suspense>
+  );
+}
+
+==========================================
+FILE: src/app/admin/years/YearForm.tsx
+==========================================
+
+// 4. app/admin/years/YearForm.tsx
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Year {
+  id?: number;
+  year: number;
+  courseId: number;
+}
+
+interface YearFormProps {
+  initialData?: Partial<Year> | null;
+  isEditing: boolean;
+  courseId?: number;
+}
+
+export default function YearForm({ initialData, isEditing, courseId: propCourseId }: YearFormProps) {
+  const [year, setYear] = useState<number | string>('');
+  const [currentCourseId, setCurrentCourseId] = useState<number | undefined>(propCourseId || initialData?.courseId);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setYear(initialData.year || '');
+    }
+    if (propCourseId) {
+        setCurrentCourseId(propCourseId);
+    }
+  }, [initialData, propCourseId]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
+
+    if (!currentCourseId) {
+        setError('Course ID is missing.');
+        setIsLoading(false);
+        return;
+    }
+    if (year === '') {
+        setError('Year is required.');
+        setIsLoading(false);
+        return;
+    }
+
+    const yearData = { year: parseInt(year as string, 10), courseId: currentCourseId };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/years/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ year: yearData.year }),
+        });
+      } else {
+        response = await fetch('/api/years', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(yearData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} year`);
+      }
+      
+      // Show success message before redirecting
+      const result = await response.json();
+      setSuccessData(result);
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/years/${result.id}` : `/admin/years/${result.id}`);
+        router.refresh();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess && successData) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        backgroundColor: '#4CAF50', 
+        color: 'white',
+        borderRadius: '4px',
+        marginBottom: '20px'
+      }}>
+        <h3 style={{ margin: '0 0 10px 0' }}>Year {isEditing ? 'Updated' : 'Created'} Successfully!</h3>
+        <p>Academic Year {successData.year} has been {isEditing ? 'updated' : 'added'}.</p>
+        <p>You'll be redirected in a moment to {isEditing ? 'view the year' : 'add semesters'}...</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="year">Academic Year (e.g., 2023):</label>
+        <input
+          type="number"
+          id="year"
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          required
+          style={{ 
+            marginLeft: '5px', 
+            padding: '8px', 
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px'
+          }}
+        />
+      </div>
+      
+      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+      
+      <button 
+        type="submit" 
+        disabled={isLoading} 
+        style={{ 
+          marginTop: '20px', 
+          padding: '10px 15px', 
+          backgroundColor: '#4CAF50', 
+          color: 'white', 
+          border: 'none', 
+          borderRadius: '4px', 
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        {isLoading ? 'Saving...' : (isEditing ? 'Update Year' : 'Create Year')}
+      </button>
+      
+      {!isEditing && (
+        <p style={{ color: '#666', marginTop: '10px' }}>
+          After creating this year, you'll be able to add semesters to it.
+        </p>
+      )}
+    </form>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/years/[yearId]/edit/page.tsx
+==========================================
+
+// 5. app/admin/years/[yearId]/edit/page.tsx
+
+import React from 'react';
+import YearForm from '../../YearForm';
+
+interface Year {
+  id: number;
+  year: number;
+  courseId: number;
+}
+
+async function getYearById(id: string): Promise<Year | null> {
+  try {
+    const res = await fetch(`/api/years/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch year: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditYearPage({ params }: { params: { yearId: string } }) {
+  const year = await getYearById(params.yearId);
+
+  if (!year) {
+    return <div>Year not found. <a href="/admin/courses">Go back to courses.</a></div>;
+  }
+
+  return (
+    <div>
+      <h1>Edit Year: {year.year}</h1>
+      <YearForm initialData={year} isEditing={true} />
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/years/[yearId]/page.tsx
+==========================================
+
+// 2. app/admin/years/[yearId]/page.tsx
+import Link from 'next/link';
+import React from 'react';
+import { fetchApi } from '@/app/lib/api';
+
+interface Unit { id: number; name: string; }
+interface Semester { id: number; semester: string; units: Unit[]; }
+interface Course { id: number; name: string; }
+interface Year {
+  id: number;
+  year: number;
+  courseId: number;
+  course: Course;
+  semesters: Semester[];
+}
+
+async function getYearDetails(id: string): Promise<Year | null> {
+  try {
+    return await fetchApi<Year>(`/api/years/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function YearDetailPage({ params }: { params: { yearId: string } }) {
+  const year = await getYearDetails(params.yearId);
+
+  if (!year) {
+    return <div>Year not found.</div>;
+  }
+
+  return (
+    <div>
+      <Link href={`/admin/courses/${year.courseId}`} style={{marginBottom: '10px', display: 'block'}}>
+        &larr; Back to Course: {year.course.name}
+      </Link>
+      <h1>Year: {year.year}</h1>
+      <p>ID: {year.id}</p>
+      
+      {/* Prominent Add Semester button */}
+      <div style={{ margin: '20px 0' }}>
+        <Link 
+          href={`/admin/semesters/new?yearId=${year.id}`}
+          style={{
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            marginRight: '10px'
+          }}
+        >
+          + Add New Semester
+        </Link>
+        <Link 
+          href={`/admin/years/${year.id}/edit`}
+          style={{
+            backgroundColor: '#f0f0f0',
+            color: '#333',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            textDecoration: 'none'
+          }}
+        >
+          Edit Year
+        </Link>
+      </div>
+
+      <h2 style={{marginTop: '30px'}}>Semesters</h2>
+      {year.semesters && year.semesters.length > 0 ? (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {year.semesters.map((semester) => (
+            <li key={semester.id} style={{ 
+              margin: '10px 0', 
+              padding: '15px', 
+              border: '1px solid #eee', 
+              borderRadius: '4px',
+              backgroundColor: '#f9f9f9'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Link 
+                  href={`/admin/semesters/${semester.id}`} 
+                  style={{ fontSize: '18px', fontWeight: 'bold', color: '#333', textDecoration: 'none' }}
+                >
+                  Semester: {semester.semester}
+                </Link>
+                <div>
+                  <Link 
+                    href={`/admin/semesters/${semester.id}/edit`}
+                    style={{ marginRight: '10px', color: '#666' }}
+                  >
+                    Edit
+                  </Link>
+                  <Link 
+                    href={`/admin/units/new?semesterId=${semester.id}`}
+                    style={{ 
+                      backgroundColor: '#2196F3',
+                      color: 'white',
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    + Add Unit
+                  </Link>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div style={{ 
+          padding: '20px', 
+          backgroundColor: '#f5f5f5', 
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          <p>No semesters associated with this year yet.</p>
+          <p>Click the "Add New Semester" button above to create one.</p>
+        </div>
+      )}
+    </div>
+  );
+}

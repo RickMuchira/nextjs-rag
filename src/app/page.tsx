@@ -1,4 +1,7 @@
+// 10. app/page.tsx (modified with admin link)
+
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -12,6 +15,14 @@ export default function Home() {
           height={38}
           priority
         />
+        
+        {/* Add this admin link */}
+        <div className="my-4">
+          <Link href="/admin/courses" className="font-bold text-blue-600 hover:underline">
+            Go to Admin Dashboard
+          </Link>
+        </div>
+        
         <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
           <li className="mb-2">
             Get started by editing{" "}

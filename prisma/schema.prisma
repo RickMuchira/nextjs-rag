@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  years     Year[]
+}
+
+model Year {
+  id        Int        @id @default(autoincrement())
+  year      Int
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  Int        @map("course_id")
+  semesters Semester[]
+}
+
+model Semester {
+  id        Int      @id @default(autoincrement())
+  semester  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  year      Year     @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  yearId    Int      @map("year_id")
+  units     Unit[]
+}
+
+model Unit {
+  id         Int      @id @default(autoincrement())
+  name       String
+  content    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semesterId Int      @map("semester_id")
+}
