@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import UnitDocuments from '@/components/UnitDocuments';
 
 interface Semester { 
   id: number; 
@@ -153,6 +154,25 @@ export default async function UnitDetailPage({ params }: { params: { unitId: str
           ) : (
             <p className="text-gray-500 italic">No content available for this unit.</p>
           )}
+        </div>
+      </div>
+
+      {/* Unit Documents */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6">
+        <div className="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
+          <h3 className="text-lg leading-6 font-medium text-gray-900">Unit Documents</h3>
+          <Link
+            href={`/admin/documents/new?unitId=${unit.id}`}
+            className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg className="-ml-0.5 mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H6a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Document
+          </Link>
+        </div>
+        <div className="px-4 py-5 sm:p-6">
+          <UnitDocuments unitId={unit.id} />
         </div>
       </div>
 

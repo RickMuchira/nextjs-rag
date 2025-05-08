@@ -15,11 +15,12 @@ datasource db {
 }
 
 model Course {
-  id        Int      @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
   years     Year[]
+  documents Document[] // Added relationship to documents
 }
 
 model Year {
@@ -30,24 +31,67 @@ model Year {
   course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId  Int        @map("course_id")
   semesters Semester[]
+  documents Document[] // Added relationship to documents
 }
 
 model Semester {
-  id        Int      @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   semester  String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  year      Year     @relation(fields: [yearId], references: [id], onDelete: Cascade)
-  yearId    Int      @map("year_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  year      Year       @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  yearId    Int        @map("year_id")
   units     Unit[]
+  documents Document[] // Added relationship to documents
 }
 
 model Unit {
-  id         Int      @id @default(autoincrement())
+  id         Int        @id @default(autoincrement())
   name       String
   content    String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  semesterId Int      @map("semester_id")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  semester   Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semesterId Int        @map("semester_id")
+  documents  Document[] // Added relationship to documents
+}
+
+// New Document model for file storage
+enum DocumentType {
+  PDF
+  DOCX
+  TXT
+  MD
+  OTHER
+}
+
+model Document {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  filename    String
+  fileUrl     String // URL to the file in Vercel Blob storage
+  fileKey     String // Blob storage key for management
+  fileSize    Int // Size in bytes
+  fileType    DocumentType
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relationships with the academic hierarchy
+  course   Course? @relation(fields: [courseId], references: [id])
+  courseId Int?    @map("course_id")
+
+  year   Year? @relation(fields: [yearId], references: [id])
+  yearId Int?  @map("year_id")
+
+  semester   Semester? @relation(fields: [semesterId], references: [id])
+  semesterId Int?      @map("semester_id")
+
+  unit   Unit? @relation(fields: [unitId], references: [id])
+  unitId Int?  @map("unit_id")
+
+  @@index([courseId])
+  @@index([yearId])
+  @@index([semesterId])
+  @@index([unitId])
 }

@@ -1,0 +1,540 @@
+]633;E;echo "# Code Extraction from /home/rick110/nextjs14-rag/src/app/api";d8304f59-ce9e-43c7-848a-10f51008d4c3]633;C# Code Extraction from /home/rick110/nextjs14-rag/src/app/api
+# Generated: Thu 08 May 2025 08:09:43 PM EAT
+
+
+
+==========================================
+FILE: src/app/api/courses/[id]/route.ts
+==========================================
+
+// app/api/courses/[id]/route.ts
+
+import { NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
+  try {
+    const id = parseInt(params.id, 10);
+    
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    }
+
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        years: {
+          include: {
+            semesters: {
+              include: {
+                units: true
+              }
+            }
+          },
+          orderBy: {
+            year: 'desc'
+          }
+        }
+      }
+    });
+
+    if (!course) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(course);
+  } catch (error) {
+    console.error(`Error fetching course:`, error);
+    return NextResponse.json({ error: 'Failed to fetch course' }, { status: 500 });
+  }
+}
+
+export async function PUT(_request: Request, { params }: { params: { id: string } }) {
+  try {
+    const id = parseInt(params.id, 10);
+    
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    }
+
+    const body = await _request.json();
+    const { name } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: 'Course name is required' }, { status: 400 });
+    }
+
+    const updatedCourse = await prisma.course.update({
+      where: { id },
+      data: { name }
+    });
+
+    return NextResponse.json(updatedCourse);
+  } catch (error) {
+    console.error(`Error updating course:`, error);
+    return NextResponse.json({ error: 'Failed to update course' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  try {
+    const id = parseInt(params.id, 10);
+    
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    }
+
+    await prisma.course.delete({
+      where: { id }
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error(`Error deleting course:`, error);
+    return NextResponse.json({ error: 'Failed to delete course' }, { status: 500 });
+  }
+}
+
+
+==========================================
+FILE: src/app/api/courses/route.ts
+==========================================
+
+// app/api/courses/route.ts
+
+import { NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+export async function GET() {
+  try {
+    const courses = await prisma.course.findMany({
+      include: {
+        years: {
+          orderBy: {
+            year: 'desc'
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+    return NextResponse.json(courses);
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 });
+  }
+}
+
+export async function POST(_request: Request) {
+  try {
+    const body = await _request.json();
+    const { name } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: 'Course name is required' }, { status: 400 });
+    }
+
+    const course = await prisma.course.create({
+      data: { name }
+    });
+
+    return NextResponse.json(course);
+  } catch (error) {
+    console.error('Error creating course:', error);
+    return NextResponse.json({ error: 'Failed to create course' }, { status: 500 });
+  }
+}
+
+
+==========================================
+FILE: src/app/api/semesters/[id]/route.ts
+==========================================
+
+// app/api/semesters/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+// GET: Get a single semester by ID
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const semesterId = parseInt(params.id, 10);
+    if (isNaN(semesterId)) return NextResponse.json({ error: 'Invalid semester ID' }, { status: 400 });
+
+    const semester = await prisma.semester.findUnique({
+      where: { id: semesterId },
+      include: { year: { include: { course: true } }, units: true }
+    });
+
+    if (!semester) return NextResponse.json({ error: 'Semester not found' }, { status: 404 });
+    return NextResponse.json(semester, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching semester:', error);
+    return NextResponse.json({ error: 'Failed to fetch semester' }, { status: 500 });
+  }
+}
+
+// PUT: Update a semester by ID
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const semesterId = parseInt(params.id, 10);
+    if (isNaN(semesterId)) return NextResponse.json({ error: 'Invalid semester ID' }, { status: 400 });
+
+    const data = await request.json();
+    if (!data.semester) {
+        return NextResponse.json({ error: 'Semester field is required' }, { status: 400 });
+    }
+
+    const updatedSemester = await prisma.semester.update({
+      where: { id: semesterId },
+      data: {
+        semester: data.semester,
+      },
+    });
+    return NextResponse.json(updatedSemester, { status: 200 });
+  } catch (error: any) {
+    console.error('Error updating semester:', error);
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Semester not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Failed to update semester' }, { status: 500 });
+  }
+}
+
+// DELETE: Delete a semester by ID
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const semesterId = parseInt(params.id, 10);
+    if (isNaN(semesterId)) return NextResponse.json({ error: 'Invalid semester ID' }, { status: 400 });
+
+    await prisma.semester.delete({ where: { id: semesterId } });
+    return NextResponse.json({ message: 'Semester deleted successfully' }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error deleting semester:', error);
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Semester not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Failed to delete semester' }, { status: 500 });
+  }
+}
+
+==========================================
+FILE: src/app/api/semesters/route.ts
+==========================================
+
+// app/api/semesters/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+// POST: Create a new semester
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json();
+    if (!data.semester || !data.yearId) {
+      return NextResponse.json({ error: 'Semester and yearId are required' }, { status: 400 });
+    }
+
+    const yearExists = await prisma.year.findUnique({ where: { id: data.yearId }});
+    if (!yearExists) {
+        return NextResponse.json({ error: 'Year not found' }, { status: 404 });
+    }
+
+    const newSemester = await prisma.semester.create({
+      data: {
+        semester: data.semester,
+        yearId: parseInt(data.yearId, 10),
+      },
+    });
+    return NextResponse.json(newSemester, { status: 201 });
+  } catch (error) {
+    console.error('Error creating semester:', error);
+    return NextResponse.json({ error: 'Failed to create semester' }, { status: 500 });
+  }
+}
+
+// GET: Get all semesters (can filter by yearId)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const yearIdParam = searchParams.get('yearId');
+    
+    const whereClause: any = {};
+    if (yearIdParam) {
+      const yearId = parseInt(yearIdParam, 10);
+      if(isNaN(yearId)) return NextResponse.json({ error: 'Invalid yearId query parameter' }, { status: 400 });
+      whereClause.yearId = yearId;
+    }
+
+    const semesters = await prisma.semester.findMany({
+      where: whereClause,
+      include: { year: true, units: true },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    return NextResponse.json(semesters, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching semesters:', error);
+    return NextResponse.json({ error: 'Failed to fetch semesters' }, { status: 500 });
+  }
+}
+
+==========================================
+FILE: src/app/api/units/[id]/route.ts
+==========================================
+
+// app/api/units/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+// GET: Get a single unit by ID
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const unitId = parseInt(params.id, 10);
+    if (isNaN(unitId)) return NextResponse.json({ error: 'Invalid unit ID' }, { status: 400 });
+
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { semester: { include: { year: { include: { course: true } } } } }
+    });
+
+    if (!unit) return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
+    return NextResponse.json(unit, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching unit:', error);
+    return NextResponse.json({ error: 'Failed to fetch unit' }, { status: 500 });
+  }
+}
+
+// PUT: Update a unit by ID
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const unitId = parseInt(params.id, 10);
+    if (isNaN(unitId)) return NextResponse.json({ error: 'Invalid unit ID' }, { status: 400 });
+
+    const data = await request.json();
+    if (!data.name) {
+        return NextResponse.json({ error: 'Name field is required' }, { status: 400 });
+    }
+
+    const updatedUnit = await prisma.unit.update({
+      where: { id: unitId },
+      data: {
+        name: data.name,
+        content: data.content,
+      },
+    });
+    return NextResponse.json(updatedUnit, { status: 200 });
+  } catch (error: any) {
+    console.error('Error updating unit:', error);
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Failed to update unit' }, { status: 500 });
+  }
+}
+
+// DELETE: Delete a unit by ID
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const unitId = parseInt(params.id, 10);
+    if (isNaN(unitId)) return NextResponse.json({ error: 'Invalid unit ID' }, { status: 400 });
+
+    await prisma.unit.delete({ where: { id: unitId } });
+    return NextResponse.json({ message: 'Unit deleted successfully' }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error deleting unit:', error);
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Failed to delete unit' }, { status: 500 });
+  }
+}
+
+==========================================
+FILE: src/app/api/units/route.ts
+==========================================
+
+// app/api/units/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+// POST: Create a new unit
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json();
+    if (!data.name || !data.semesterId) {
+      return NextResponse.json({ error: 'Name and semesterId are required' }, { status: 400 });
+    }
+
+    const semesterExists = await prisma.semester.findUnique({where: {id: data.semesterId}});
+    if(!semesterExists) {
+        return NextResponse.json({ error: 'Semester not found' }, { status: 404 });
+    }
+
+    const newUnit = await prisma.unit.create({
+      data: {
+        name: data.name,
+        content: data.content, // Optional
+        semesterId: parseInt(data.semesterId, 10),
+      },
+    });
+    return NextResponse.json(newUnit, { status: 201 });
+  } catch (error) {
+    console.error('Error creating unit:', error);
+    return NextResponse.json({ error: 'Failed to create unit' }, { status: 500 });
+  }
+}
+
+// GET: Get all units (can filter by semesterId)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const semesterIdParam = searchParams.get('semesterId');
+    
+    const whereClause: any = {};
+    if (semesterIdParam) {
+      const semesterId = parseInt(semesterIdParam, 10);
+      if(isNaN(semesterId)) return NextResponse.json({ error: 'Invalid semesterId query parameter' }, { status: 400 });
+      whereClause.semesterId = semesterId;
+    }
+
+    const units = await prisma.unit.findMany({
+      where: whereClause,
+      include: { semester: true }, // Include parent semester
+      orderBy: {
+        name: 'asc' // Or createdAt, etc.
+      }
+    });
+    return NextResponse.json(units, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching units:', error);
+    return NextResponse.json({ error: 'Failed to fetch units' }, { status: 500 });
+  }
+}
+
+==========================================
+FILE: src/app/api/years/[id]/route.ts
+==========================================
+
+// app/api/years/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+// GET: Get a single year by ID
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const yearId = parseInt(params.id, 10);
+    if (isNaN(yearId)) return NextResponse.json({ error: 'Invalid year ID' }, { status: 400 });
+
+    const year = await prisma.year.findUnique({
+      where: { id: yearId },
+      include: { course: true, semesters: { include: { units: true } } }
+    });
+
+    if (!year) return NextResponse.json({ error: 'Year not found' }, { status: 404 });
+    return NextResponse.json(year, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching year:', error);
+    return NextResponse.json({ error: 'Failed to fetch year' }, { status: 500 });
+  }
+}
+
+// PUT: Update a year by ID
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const yearId = parseInt(params.id, 10);
+    if (isNaN(yearId)) return NextResponse.json({ error: 'Invalid year ID' }, { status: 400 });
+
+    const data = await request.json();
+    if (!data.year) {
+        return NextResponse.json({ error: 'Year field is required for update' }, { status: 400 });
+    }
+
+    const updatedYear = await prisma.year.update({
+      where: { id: yearId },
+      data: {
+        year: parseInt(data.year, 10),
+      },
+    });
+    return NextResponse.json(updatedYear, { status: 200 });
+  } catch (error: any) {
+    console.error('Error updating year:', error);
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Year not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Failed to update year' }, { status: 500 });
+  }
+}
+
+// DELETE: Delete a year by ID
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const yearId = parseInt(params.id, 10);
+    if (isNaN(yearId)) return NextResponse.json({ error: 'Invalid year ID' }, { status: 400 });
+
+    await prisma.year.delete({ where: { id: yearId } });
+    return NextResponse.json({ message: 'Year deleted successfully' }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error deleting year:', error);
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Year not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Failed to delete year' }, { status: 500 });
+  }
+}
+
+==========================================
+FILE: src/app/api/years/route.ts
+==========================================
+
+// app/api/years/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+
+// POST: Create a new year
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json();
+    if (!data.year || !data.courseId) {
+      return NextResponse.json({ error: 'Year and courseId are required' }, { status: 400 });
+    }
+
+    // Optional: Check if courseId exists
+    const courseExists = await prisma.course.findUnique({ where: { id: data.courseId } });
+    if (!courseExists) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    const newYear = await prisma.year.create({
+      data: {
+        year: parseInt(data.year, 10),
+        courseId: parseInt(data.courseId, 10),
+      },
+    });
+    return NextResponse.json(newYear, { status: 201 });
+  } catch (error) {
+    console.error('Error creating year:', error);
+    return NextResponse.json({ error: 'Failed to create year' }, { status: 500 });
+  }
+}
+
+// GET: Get all years (can filter by courseId)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const courseIdParam = searchParams.get('courseId');
+    
+    const whereClause: any = {};
+    if (courseIdParam) {
+      const courseId = parseInt(courseIdParam, 10);
+      if (isNaN(courseId)) {
+        return NextResponse.json({ error: 'Invalid courseId query parameter' }, { status: 400 });
+      }
+      whereClause.courseId = courseId;
+    }
+
+    const years = await prisma.year.findMany({
+      where: whereClause,
+      include: {
+        course: true, // Include parent course
+        semesters: true, // Optionally include related semesters
+      },
+      orderBy: {
+        year: 'desc'
+      }
+    });
+    return NextResponse.json(years, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching years:', error);
+    return NextResponse.json({ error: 'Failed to fetch years' }, { status: 500 });
+  }
+}

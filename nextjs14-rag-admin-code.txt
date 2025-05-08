@@ -1,0 +1,2889 @@
+]633;E;echo "# Code Extraction from /home/rick110/nextjs14-rag/src/app/admin";d8304f59-ce9e-43c7-848a-10f51008d4c3]633;C# Code Extraction from /home/rick110/nextjs14-rag/src/app/admin
+# Generated: Thu 08 May 2025 08:09:59 PM EAT
+
+
+
+==========================================
+FILE: src/app/admin/courses/CourseForm.tsx
+==========================================
+
+// File: app/admin/courses/CourseForm.tsx
+
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Course {
+  id?: number;
+  name: string;
+  description?: string;
+}
+
+interface CourseFormProps {
+  initialData?: Course | null;
+  isEditing: boolean;
+}
+
+export default function CourseForm({ initialData, isEditing }: CourseFormProps) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setDescription(initialData.description || '');
+    }
+  }, [initialData]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    if (name.trim() === '') {
+      setError('Course name is required');
+      setIsLoading(false);
+      return;
+    }
+
+    const courseData = { 
+      name,
+      description 
+    };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/courses/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(courseData),
+        });
+      } else {
+        response = await fetch('/api/courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(courseData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} course`);
+      }
+
+      const result = await response.json();
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/courses/${result.id}` : '/admin/courses');
+        router.refresh();
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm leading-5 font-medium text-green-800">
+              Course {isEditing ? 'updated' : 'created'} successfully! Redirecting...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          Course Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter course name"
+          required
+        />
+      </div>
+      
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter course description (optional)"
+        />
+      </div>
+      
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+        >
+          {isLoading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            isEditing ? 'Update Course' : 'Create Course'
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/courses/[courseId]/edit/page.tsx
+==========================================
+
+// 3. app/admin/courses/[courseId]/edit/page.tsx
+
+import React from 'react';
+import CourseForm from '../../CourseForm';
+
+interface Course {
+  id: number;
+  name: string;
+}
+
+async function getCourseById(id: string): Promise<Course | null> {
+  try {
+    const res = await fetch(`/api/courses/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch course: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditCoursePage({ params }: { params: { courseId: string } }) {
+  const course = await getCourseById(params.courseId);
+
+  if (!course) {
+    return <div>Course not found. <a href="/admin/courses">Go back to courses.</a></div>;
+  }
+
+  return (
+    <div>
+      <h1>Edit Course: {course.name}</h1>
+      <CourseForm initialData={course} isEditing={true} />
+    </div>
+  );
+}
+
+==========================================
+FILE: src/app/admin/courses/[courseId]/page.tsx
+==========================================
+
+// File: app/admin/courses/[courseId]/page.tsx
+import Link from 'next/link';
+import React from 'react';
+import { notFound } from 'next/navigation';
+
+// Define interfaces
+interface Unit { 
+  id: number; 
+  name: string; 
+}
+
+interface Semester { 
+  id: number; 
+  semester: string; 
+  units: Unit[]; 
+}
+
+interface Year { 
+  id: number; 
+  year: number; 
+  semesters: Semester[]; 
+}
+
+interface Course {
+  id: number;
+  name: string;
+  description?: string;
+  years: Year[];
+}
+
+// Direct server-side fetch with no caching to ensure fresh data
+async function getCourseDetails(id: string): Promise<Course | null> {
+  try {
+    // Use absolute URL with hostname to avoid fetch issues
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+    const host = process.env.VERCEL_URL || 'localhost:3000';
+    const url = `${protocol}://${host}/api/courses/${id}`;
+    
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
+    
+    if (!res.ok) {
+      if (res.status === 404) {
+        return null;
+      }
+      throw new Error(`Failed to fetch course: ${res.statusText}`);
+    }
+    
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching course details:', error);
+    return null;
+  }
+}
+
+export default async function CourseDetailPage({ params }: { params: { courseId: string } }) {
+  const course = await getCourseDetails(params.courseId);
+
+  if (!course) {
+    notFound();
+  }
+
+  const hasYears = course.years && course.years.length > 0;
+  
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-5" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 truncate max-w-xs">
+                {course.name}
+              </span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      {/* Course header */}
+      <div className="md:flex md:items-center md:justify-between mb-8">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {course.name}
+          </h1>
+          <p className="mt-1 flex items-center text-sm text-gray-500">
+            <span className="truncate">Course ID: {course.id}</span>
+            <span className="ml-4 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              {course.years?.length || 0} academic years
+            </span>
+          </p>
+        </div>
+        <div className="mt-5 flex xl:mt-0 xl:ml-4">
+          <Link
+            href={`/admin/courses/${course.id}/edit`}
+            className="mr-2 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            Edit Course
+          </Link>
+          <Link
+            href={`/admin/years/new?courseId=${course.id}`}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Academic Year
+          </Link>
+        </div>
+      </div>
+
+      {/* Course workflow info */}
+      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8 shadow-sm rounded">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">Course Structure</h3>
+            <div className="mt-2 text-sm text-blue-700">
+              <p>Content is organized in the following hierarchy:</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  1. Course
+                </span>
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                  2. Year
+                </span>
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  3. Semester
+                </span>
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-pink-100 text-pink-800">
+                  4. Unit
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Course content */}
+      {hasYears ? (
+        <div className="space-y-8">
+          <h2 className="text-lg font-medium leading-6 text-gray-900">Academic Years</h2>
+          
+          {course.years.map((year) => (
+            <div key={year.id} className="bg-white shadow sm:rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Academic Year: {year.year}
+                  </h3>
+                  <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                    {year.semesters.length} {year.semesters.length === 1 ? 'semester' : 'semesters'}
+                  </p>
+                </div>
+                <div className="flex space-x-3">
+                  <Link
+                    href={`/admin/years/${year.id}/edit`}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <svg className="-ml-1 mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Edit
+                  </Link>
+                  <Link
+                    href={`/admin/years/${year.id}`}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <svg className="-ml-1 mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                    View
+                  </Link>
+                  <Link
+                    href={`/admin/semesters/new?yearId=${year.id}`}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <svg className="-ml-1 mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H6a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Add Semester
+                  </Link>
+                </div>
+              </div>
+              
+              {year.semesters.length > 0 ? (
+                <div className="border-t border-gray-200">
+                  <div className="px-4 py-5 sm:p-6">
+                    <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Semesters</h4>
+                    <ul className="divide-y divide-gray-200">
+                      {year.semesters.map((semester) => (
+                        <li key={semester.id} className="py-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                <svg className="h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                              <div className="ml-4">
+                                <Link
+                                  href={`/admin/semesters/${semester.id}`}
+                                  className="text-base font-medium text-purple-600 hover:text-purple-900"
+                                >
+                                  {semester.semester}
+                                </Link>
+                                <p className="text-sm text-gray-500">
+                                  {semester.units.length} {semester.units.length === 1 ? 'unit' : 'units'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-3">
+                              <Link
+                                href={`/admin/semesters/${semester.id}/edit`}
+                                className="text-indigo-600 hover:text-indigo-900 text-sm"
+                              >
+                                Edit
+                              </Link>
+                              <Link
+                                href={`/admin/semesters/${semester.id}`}
+                                className="text-indigo-600 hover:text-indigo-900 text-sm"
+                              >
+                                View
+                              </Link>
+                              <Link
+                                href={`/admin/units/new?semesterId=${semester.id}`}
+                                className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                              >
+                                <svg className="-ml-0.5 mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H6a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                </svg>
+                                Add Unit
+                              </Link>
+                            </div>
+                          </div>
+                          
+                          {semester.units.length > 0 && (
+                            <div className="ml-14 mt-3">
+                              <h5 className="text-xs font-medium text-gray-500 mb-2">Units:</h5>
+                              <div className="flex flex-wrap gap-2">
+                                {semester.units.map((unit) => (
+                                  <Link 
+                                    key={unit.id}
+                                    href={`/admin/units/${unit.id}`}
+                                    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                  >
+                                    {unit.name}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-5 sm:p-6 border-t border-gray-200">
+                  <div className="text-center py-4">
+                    <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No semesters added yet</h3>
+                    <div className="mt-3">
+                      <Link
+                        href={`/admin/semesters/new?yearId=${year.id}`}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H6a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        Add First Semester
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white shadow sm:rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="text-center py-8">
+              <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">No academic years added yet</h3>
+              <p className="mt-2 text-base text-gray-500">Get started by creating an academic year for this course.</p>
+              <div className="mt-6">
+                <Link
+                  href={`/admin/years/new?courseId=${course.id}`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H6a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add First Academic Year
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/courses/new/page.tsx
+==========================================
+
+// File: app/admin/courses/new/page.tsx
+
+import React from 'react';
+import CourseForm from '../CourseForm';
+import Link from 'next/link';
+
+export default function NewCoursePage() {
+  return (
+    <div className="container mx-auto">
+      <div className="mb-6">
+        <Link 
+          href="/admin/courses"
+          className="text-blue-600 hover:text-blue-800 flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="mr-1" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+          </svg>
+          Back to Courses
+        </Link>
+      </div>
+      
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Add New Course</h1>
+        
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                Fill in the details below to create a new course. Once created, you can add academic years, semesters, and units.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <CourseForm isEditing={false} />
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/courses/page.tsx
+==========================================
+
+// File: app/admin/courses/page.tsx
+
+import Link from 'next/link';
+import React from 'react';
+
+// Define types
+interface Year {
+  id: number;
+  year: number;
+}
+
+interface Course {
+  id: number;
+  name: string;
+  description?: string;
+  years: Year[];
+}
+
+// Get all courses - explicit server-side fetch with no caching
+async function getCourses(): Promise<Course[]> {
+  try {
+    // Use absolute URL with hostname to avoid fetch issues
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+    const host = process.env.VERCEL_URL || 'localhost:3000';
+    const url = `${protocol}://${host}/api/courses`;
+    
+    // Direct server-side fetch with no caching to ensure fresh data
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
+    
+    if (!res.ok) {
+      console.error(`Error fetching courses: ${res.status} ${res.statusText}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    return [];
+  }
+}
+
+export default async function CoursesPage() {
+  const courses = await getCourses();
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="md:flex md:items-center md:justify-between mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Courses
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage your course catalog
+          </p>
+        </div>
+        <div className="mt-4 flex md:mt-0 md:ml-4">
+          <Link
+            href="/admin/courses/new"
+            className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add New Course
+          </Link>
+        </div>
+      </div>
+
+      {courses.length === 0 ? (
+        <div className="text-center bg-white py-12 px-4 shadow sm:rounded-lg">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No courses found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Get started by creating a new course.
+          </p>
+          <div className="mt-6">
+            <Link
+              href="/admin/courses/new"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Create First Course
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <ul className="divide-y divide-gray-200">
+            {courses.map((course) => (
+              <li key={course.id}>
+                <div className="px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <svg className="h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      </div>
+                      <div className="ml-4">
+                        <Link 
+                          href={`/admin/courses/${course.id}`}
+                          className="text-lg font-medium text-indigo-600 hover:text-indigo-900"
+                        >
+                          {course.name}
+                        </Link>
+                        {course.description && (
+                          <p className="text-sm text-gray-500 mt-1 truncate max-w-md">
+                            {course.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {course.years?.length || 0} years
+                      </span>
+                      <div className="ml-2 flex-shrink-0 flex">
+                        <Link
+                          href={`/admin/courses/${course.id}`}
+                          className="mr-2 px-3 py-1 border border-transparent text-sm leading-5 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                        >
+                          View
+                        </Link>
+                        <Link
+                          href={`/admin/courses/${course.id}/edit`}
+                          className="mr-2 px-3 py-1 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/admin/years/new?courseId=${course.id}`}
+                          className="px-3 py-1 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-green-600 hover:bg-green-500"
+                        >
+                          Add Year
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/layout.tsx
+==========================================
+
+// File: app/admin/layout.tsx
+
+import Link from 'next/link';
+import React from 'react';
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex-shrink-0 flex items-center">
+                <span className="text-xl font-bold text-gray-800">Course Management</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-white shadow-md min-h-screen">
+          <div className="py-4 px-3">
+            <h2 className="text-lg font-semibold text-gray-700 mb-4 px-3">Admin Panel</h2>
+            <ul className="space-y-1">
+              <li>
+                <Link
+                  href="/admin/courses"
+                  className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-900 bg-gray-100 hover:bg-gray-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  Courses
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/courses/new"
+                  className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add New Course
+                </Link>
+              </li>
+            </ul>
+            
+            <div className="mt-8">
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Content Hierarchy
+              </h3>
+              <div className="mt-1 px-3 py-2 text-sm text-gray-600 border-l-2 border-gray-200 ml-3">
+                <p className="mb-1">1. <strong>Courses</strong></p>
+                <p className="mb-1 ml-4">2. <strong>Years</strong></p>
+                <p className="mb-1 ml-8">3. <strong>Semesters</strong></p>
+                <p className="ml-12">4. <strong>Units</strong></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/semesters/new/page.tsx
+==========================================
+
+import React from 'react';
+import SemesterForm from '../SemesterForm';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+// Add a function to get year details for breadcrumb
+async function getYearInfo(yearId: string): Promise<{ id: number; year: number; courseId: number; course: { name: string } } | null> {
+  try {
+    return await fetchApi<{ id: number; year: number; courseId: number; course: { name: string } }>(`/api/years/${yearId}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function PageContent({ yearId }: { yearId?: string }) {
+    const parsedYearId = yearId ? parseInt(yearId, 10) : undefined;
+    if (parsedYearId === undefined || isNaN(parsedYearId)) {
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Link 
+              href="/admin/courses"
+              className="inline-flex items-center mb-6 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Courses
+            </Link>
+            
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error: Valid Year ID is required</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>A valid Year ID is required to add a new semester.</p>
+                    <p className="mt-1">
+                      <Link href="/admin/courses" className="font-medium text-red-700 underline hover:text-red-600">
+                        Go to courses
+                      </Link>
+                      {' '}and select a course to add years and semesters.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+
+    // Get year info for breadcrumb
+    const yearInfo = await getYearInfo(yearId);
+  
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Breadcrumb */}
+            <nav className="flex mb-8" aria-label="Breadcrumb">
+              <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                <li className="inline-flex items-center">
+                  <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                    </svg>
+                    Courses
+                  </Link>
+                </li>
+                {yearInfo && (
+                  <>
+                    <li>
+                      <div className="flex items-center">
+                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                        </svg>
+                        <Link href={`/admin/courses/${yearInfo.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                          {yearInfo.course.name}
+                        </Link>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center">
+                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                        </svg>
+                        <Link href={`/admin/years/${parsedYearId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                          Year {yearInfo.year}
+                        </Link>
+                      </div>
+                    </li>
+                  </>
+                )}
+                <li aria-current="page">
+                  <div className="flex items-center">
+                    <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                    </svg>
+                    <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Add New Semester</span>
+                  </div>
+                </li>
+              </ol>
+            </nav>
+            
+            <div className="bg-white shadow-md rounded-lg p-6">
+              <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Add New Semester</h1>
+              
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      Fill in the details below to create a new semester. Once created, you can add units.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <SemesterForm isEditing={false} yearId={parsedYearId} />
+            </div>
+        </div>
+    );
+}
+
+export default function NewSemesterPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const yearId = typeof searchParams?.yearId === 'string' ? searchParams.yearId : undefined;
+  
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-4 py-8 flex justify-center">
+        <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500">
+          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading...
+        </div>
+      </div>
+    }>
+        <PageContent yearId={yearId} />
+    </Suspense>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/semesters/SemesterForm.tsx
+==========================================
+
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Semester {
+  id?: number;
+  semester: string;
+  yearId: number;
+}
+
+interface SuccessData {
+  id: number;
+  semester: string;
+  yearId: number;
+}
+
+interface SemesterFormProps {
+  initialData?: Partial<Semester> | null;
+  isEditing: boolean;
+  yearId?: number;
+}
+
+export default function SemesterForm({ initialData, isEditing, yearId: propYearId }: SemesterFormProps) {
+  const [semester, setSemester] = useState('');
+  const [currentYearId, setCurrentYearId] = useState<number | undefined>(propYearId || initialData?.yearId);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setSemester(initialData.semester || '');
+    }
+    if (propYearId) {
+        setCurrentYearId(propYearId);
+    }
+  }, [initialData, propYearId]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
+
+    if (!currentYearId) {
+        setError('Year ID is missing.');
+        setIsLoading(false);
+        return;
+    }
+    if (semester === '') {
+        setError('Semester name is required.');
+        setIsLoading(false);
+        return;
+    }
+
+    const semesterData = { semester, yearId: currentYearId };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/semesters/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ semester: semesterData.semester }),
+        });
+      } else {
+        response = await fetch('/api/semesters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(semesterData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} semester`);
+      }
+      
+      // Show success message before redirecting
+      const result = await response.json();
+      setSuccessData(result);
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/semesters/${result.id}` : `/admin/semesters/${result.id}`);
+        router.refresh();
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess && successData) {
+    return (
+      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm leading-5 font-medium text-green-800">
+              Semester {successData.semester} has been {isEditing ? 'updated' : 'created'} successfully! Redirecting...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-1">
+          Semester Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="semester"
+          value={semester}
+          onChange={(e) => setSemester(e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Enter semester name (e.g., Fall 2025)"
+          required
+        />
+      </div>
+      
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+        >
+          {isLoading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            isEditing ? 'Update Semester' : 'Create Semester'
+          )}
+        </button>
+      </div>
+      
+      {!isEditing && (
+        <p className="mt-2 text-sm text-gray-500">
+          After creating this semester, you'll be able to add units to it.
+        </p>
+      )}
+    </form>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/semesters/[semesterId]/edit/page.tsx
+==========================================
+
+import React from 'react';
+import SemesterForm from '../../SemesterForm';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+interface Semester {
+  id: number;
+  semester: string;
+  yearId: number;
+  year?: { 
+    year: number; 
+    courseId: number;
+    course: { 
+      name: string 
+    } 
+  };
+}
+
+async function getSemesterById(id: string): Promise<Semester | null> {
+  try {
+    return await fetchApi<Semester>(`/api/semesters/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditSemesterPage({ params }: { params: { semesterId: string } }) {
+  const semester = await getSemesterById(params.semesterId);
+
+  if (!semester) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white shadow-md rounded-lg p-6 text-center">
+          <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="mt-2 text-xl font-bold text-gray-900">Semester not found</h2>
+          <p className="mt-1 text-gray-500">The semester you are looking for does not exist.</p>
+          <Link 
+            href="/admin/courses" 
+            className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+          >
+            Return to Courses
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          {semester.year && (
+            <>
+              <li>
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <Link href={`/admin/courses/${semester.year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                    {semester.year.course.name}
+                  </Link>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <Link href={`/admin/years/${semester.yearId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                    Year {semester.year.year}
+                  </Link>
+                </div>
+              </li>
+            </>
+          )}
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/semesters/${semester.id}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                {semester.semester}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Edit</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Edit Semester: {semester.semester}</h1>
+        <SemesterForm initialData={semester} isEditing={true} />
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/semesters/[semesterId]/page.tsx
+==========================================
+
+import Link from 'next/link';
+import React from 'react';
+import { fetchApi } from '@/app/lib/api';
+
+interface Unit { id: number; name: string; }
+interface Year { id: number; year: number; courseId: number; }
+interface Course { id: number; name: string; }
+interface Semester {
+  id: number;
+  semester: string;
+  yearId: number;
+  year: Year & { course: Course };
+  units: Unit[];
+}
+
+async function getSemesterDetails(id: string): Promise<Semester | null> {
+  try {
+    return await fetchApi<Semester>(`/api/semesters/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function SemesterDetailPage({ params }: { params: { semesterId: string } }) {
+  const semester = await getSemesterDetails(params.semesterId);
+
+  if (!semester) {
+    return (
+      <div className="bg-white shadow-md rounded-lg p-6 text-center">
+        <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 className="mt-2 text-xl font-bold text-gray-900">Semester not found</h2>
+        <p className="mt-1 text-gray-500">The semester you are looking for does not exist.</p>
+        <Link 
+          href="/admin/courses" 
+          className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+        >
+          Return to Courses
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-5" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/courses/${semester.year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                {semester.year.course.name}
+              </Link>
+            </div>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/years/${semester.yearId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                Year {semester.year.year}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">{semester.semester}</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      {/* Semester header */}
+      <div className="md:flex md:items-center md:justify-between mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {semester.semester}
+          </h1>
+          <p className="mt-1 flex items-center text-sm text-gray-500">
+            <span className="truncate">Semester ID: {semester.id}</span>
+            <span className="ml-4 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              {semester.units?.length || 0} units
+            </span>
+          </p>
+        </div>
+        <div className="mt-5 flex xl:mt-0 xl:ml-4">
+          <Link
+            href={`/admin/semesters/${semester.id}/edit`}
+            className="mr-2 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            Edit Semester
+          </Link>
+          <Link
+            href={`/admin/units/new?semesterId=${semester.id}`}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Unit
+          </Link>
+        </div>
+      </div>
+
+      {/* Units List */}
+      <div className="mt-8">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Units</h2>
+        
+        {semester.units && semester.units.length > 0 ? (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul className="divide-y divide-gray-200">
+              {semester.units.map((unit) => (
+                <li key={unit.id}>
+                  <div className="px-4 py-5 sm:px-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-pink-100 rounded-full flex items-center justify-center">
+                          <svg className="h-6 w-6 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="ml-4">
+                          <Link 
+                            href={`/admin/units/${unit.id}`}
+                            className="text-lg font-medium text-pink-600 hover:text-pink-900"
+                          >
+                            {unit.name}
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="flex space-x-3">
+                        <Link
+                          href={`/admin/units/${unit.id}/edit`}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <svg className="-ml-1 mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/admin/units/${unit.id}`}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <svg className="-ml-1 mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                          </svg>
+                          View
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <div className="px-4 py-5 sm:p-6 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No units found</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by creating a new unit.</p>
+              <div className="mt-6">
+                <Link
+                  href={`/admin/units/new?semesterId=${semester.id}`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add First Unit
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/units/new/page.tsx
+==========================================
+
+import React from 'react';
+import UnitForm from '../UnitForm';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+interface SemesterInfo {
+  id: number; 
+  semester: string; 
+  yearId: number; 
+  year: { 
+    year: number; 
+    courseId: number; 
+    course: { 
+      name: string 
+    } 
+  }
+}
+
+// Add a function to get semester details for breadcrumb
+async function getSemesterInfo(semesterId: string): Promise<SemesterInfo | null> {
+  try {
+    return await fetchApi<SemesterInfo>(`/api/semesters/${semesterId}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function PageContent({ semesterId }: { semesterId?: string }) {
+    const parsedSemesterId = semesterId ? parseInt(semesterId, 10) : undefined;
+    if (parsedSemesterId === undefined || isNaN(parsedSemesterId)) {
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Link 
+              href="/admin/courses"
+              className="inline-flex items-center mb-6 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Courses
+            </Link>
+            
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error: Valid Semester ID is required</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>A valid Semester ID is required to add a new unit.</p>
+                    <p className="mt-1">
+                      <Link href="/admin/courses" className="font-medium text-red-700 underline hover:text-red-600">
+                        Go to courses
+                      </Link>
+                      {' '}and select a course, then a year, and then a semester.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+
+    // Get semester info for breadcrumb - Fix TypeScript error by ensuring semesterId is a string
+    const semesterInfo = semesterId ? await getSemesterInfo(semesterId) : null;
+  
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Breadcrumb */}
+            <nav className="flex mb-8" aria-label="Breadcrumb">
+              <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                <li className="inline-flex items-center">
+                  <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                    </svg>
+                    Courses
+                  </Link>
+                </li>
+                {semesterInfo && (
+                  <>
+                    <li>
+                      <div className="flex items-center">
+                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                        </svg>
+                        <Link href={`/admin/courses/${semesterInfo.year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                          {semesterInfo.year.course.name}
+                        </Link>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center">
+                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                        </svg>
+                        <Link href={`/admin/years/${semesterInfo.yearId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                          Year {semesterInfo.year.year}
+                        </Link>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center">
+                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                        </svg>
+                        <Link href={`/admin/semesters/${semesterInfo.id}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                          {semesterInfo.semester}
+                        </Link>
+                      </div>
+                    </li>
+                  </>
+                )}
+                <li aria-current="page">
+                  <div className="flex items-center">
+                    <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                    </svg>
+                    <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Add New Unit</span>
+                  </div>
+                </li>
+              </ol>
+            </nav>
+            
+            <div className="bg-white shadow-md rounded-lg p-6">
+              <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Add New Unit</h1>
+              
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      Fill in the details below to create a new unit for this semester.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <UnitForm isEditing={false} semesterId={parsedSemesterId} />
+            </div>
+        </div>
+    );
+}
+
+export default function NewUnitPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const semesterId = typeof searchParams?.semesterId === 'string' ? searchParams.semesterId : undefined;
+  
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-4 py-8 flex justify-center">
+        <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500">
+          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading...
+        </div>
+      </div>
+    }>
+        <PageContent semesterId={semesterId} />
+    </Suspense>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/units/UnitForm.tsx
+==========================================
+
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Unit {
+  id?: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+}
+
+interface SuccessData {
+  id: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+}
+
+interface UnitFormProps {
+  initialData?: Partial<Unit> | null;
+  isEditing: boolean;
+  semesterId?: number;
+}
+
+export default function UnitForm({ initialData, isEditing, semesterId: propSemesterId }: UnitFormProps) {
+  const [name, setName] = useState('');
+  const [content, setContent] = useState('');
+  const [currentSemesterId, setCurrentSemesterId] = useState<number | undefined>(
+    propSemesterId || initialData?.semesterId
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setContent(initialData.content || '');
+    }
+    if (propSemesterId) {
+      setCurrentSemesterId(propSemesterId);
+    }
+  }, [initialData, propSemesterId]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
+
+    if (!currentSemesterId) {
+      setError('Semester ID is missing.');
+      setIsLoading(false);
+      return;
+    }
+    if (name === '') {
+      setError('Unit name is required.');
+      setIsLoading(false);
+      return;
+    }
+
+    const unitData = { 
+      name, 
+      content,
+      semesterId: currentSemesterId 
+    };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/units/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: unitData.name,
+            content: unitData.content 
+          }),
+        });
+      } else {
+        response = await fetch('/api/units', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unitData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} unit`);
+      }
+      
+      // Show success message before redirecting
+      const result = await response.json();
+      setSuccessData(result);
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/units/${result.id}` : `/admin/units/${result.id}`);
+        router.refresh();
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess && successData) {
+    return (
+      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm leading-5 font-medium text-green-800">
+              Unit {successData.name} has been {isEditing ? 'updated' : 'created'} successfully! Redirecting...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          Unit Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Enter unit name"
+          required
+        />
+      </div>
+      
+      <div>
+        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+          Content
+        </label>
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Enter unit content (optional)"
+          rows={6}
+        />
+      </div>
+      
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+        >
+          {isLoading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            isEditing ? 'Update Unit' : 'Create Unit'
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/units/[unitId]/edit/page.tsx
+==========================================
+
+import React from 'react';
+import UnitForm from '../../UnitForm';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+interface Semester { 
+  id: number; 
+  semester: string; 
+  yearId: number;
+  year: { 
+    id: number; 
+    year: number; 
+    courseId: number;
+    course: { 
+      id: number; 
+      name: string; 
+    } 
+  } 
+}
+
+interface Unit {
+  id: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+  semester?: Semester;
+}
+
+async function getUnitById(id: string): Promise<Unit | null> {
+  try {
+    return await fetchApi<Unit>(`/api/units/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditUnitPage({ params }: { params: { unitId: string } }) {
+  const unit = await getUnitById(params.unitId);
+
+  if (!unit) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white shadow-md rounded-lg p-6 text-center">
+          <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="mt-2 text-xl font-bold text-gray-900">Unit not found</h2>
+          <p className="mt-1 text-gray-500">The unit you are looking for does not exist.</p>
+          <Link 
+            href="/admin/courses" 
+            className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+          >
+            Return to Courses
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          {unit.semester && (
+            <>
+              <li>
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <Link href={`/admin/courses/${unit.semester.year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                    {unit.semester.year.course.name}
+                  </Link>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <Link href={`/admin/years/${unit.semester.yearId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                    Year {unit.semester.year.year}
+                  </Link>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <Link href={`/admin/semesters/${unit.semesterId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                    {unit.semester.semester}
+                  </Link>
+                </div>
+              </li>
+            </>
+          )}
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/units/${unit.id}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                {unit.name}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Edit</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Edit Unit: {unit.name}</h1>
+        <UnitForm initialData={unit} isEditing={true} />
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/units/[unitId]/page.tsx
+==========================================
+
+import Link from 'next/link';
+import React from 'react';
+
+interface Semester { 
+  id: number; 
+  semester: string; 
+  yearId: number;
+  year: { 
+    id: number; 
+    year: number; 
+    courseId: number;
+    course: { 
+      id: number; 
+      name: string; 
+    } 
+  } 
+}
+
+interface Unit {
+  id: number;
+  name: string;
+  content?: string;
+  semesterId: number;
+  semester: Semester;
+}
+
+async function getUnitDetails(id: string): Promise<Unit | null> {
+  try {
+    const res = await fetch(`/api/units/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch unit details: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function UnitDetailPage({ params }: { params: { unitId: string } }) {
+  const unit = await getUnitDetails(params.unitId);
+
+  if (!unit) {
+    return (
+      <div className="bg-white shadow-md rounded-lg p-6 text-center">
+        <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 className="mt-2 text-xl font-bold text-gray-900">Unit not found</h2>
+        <p className="mt-1 text-gray-500">The unit you are looking for does not exist.</p>
+        <Link 
+          href="/admin/courses" 
+          className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+        >
+          Return to Courses
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-5" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/courses/${unit.semester.year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                {unit.semester.year.course.name}
+              </Link>
+            </div>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/years/${unit.semester.yearId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                Year {unit.semester.year.year}
+              </Link>
+            </div>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/semesters/${unit.semesterId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                {unit.semester.semester}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">{unit.name}</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      {/* Unit header */}
+      <div className="md:flex md:items-center md:justify-between mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {unit.name}
+          </h1>
+          <p className="mt-1 flex items-center text-sm text-gray-500">
+            <span className="truncate">Unit ID: {unit.id}</span>
+          </p>
+        </div>
+        <div className="mt-5 flex xl:mt-0 xl:ml-4">
+          <Link
+            href={`/admin/units/${unit.id}/edit`}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            Edit Unit
+          </Link>
+        </div>
+      </div>
+
+      {/* Unit content */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6">
+        <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
+          <h3 className="text-lg leading-6 font-medium text-gray-900">Unit Content</h3>
+        </div>
+        <div className="px-4 py-5 sm:p-6">
+          {unit.content ? (
+            <div className="prose max-w-none">
+              <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm text-gray-900 overflow-auto">
+                {unit.content}
+              </pre>
+            </div>
+          ) : (
+            <p className="text-gray-500 italic">No content available for this unit.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6">
+        <div className="px-4 py-5 sm:px-6">
+          <h3 className="text-lg leading-6 font-medium text-gray-900">Additional Information</h3>
+        </div>
+        <div className="border-t border-gray-200">
+          <dl>
+            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt className="text-sm font-medium text-gray-500">Course</dt>
+              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <Link href={`/admin/courses/${unit.semester.year.courseId}`} className="text-indigo-600 hover:text-indigo-900">
+                  {unit.semester.year.course.name}
+                </Link>
+              </dd>
+            </div>
+            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt className="text-sm font-medium text-gray-500">Academic Year</dt>
+              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <Link href={`/admin/years/${unit.semester.yearId}`} className="text-indigo-600 hover:text-indigo-900">
+                  {unit.semester.year.year}
+                </Link>
+              </dd>
+            </div>
+            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt className="text-sm font-medium text-gray-500">Semester</dt>
+              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <Link href={`/admin/semesters/${unit.semesterId}`} className="text-indigo-600 hover:text-indigo-900">
+                  {unit.semester.semester}
+                </Link>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/years/new/page.tsx
+==========================================
+
+// 7. app/admin/years/new/page.tsx
+import React from 'react';
+import YearForm from '../YearForm';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+// Add a function to get course details for breadcrumb
+async function getCourseInfo(courseId: string): Promise<{ id: number; name: string } | null> {
+  try {
+    return await fetchApi<{ id: number; name: string }>(`/api/courses/${courseId}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function PageContent({ courseId }: { courseId?: string }) {
+    const parsedCourseId = courseId ? parseInt(courseId, 10) : undefined;
+    if (parsedCourseId === undefined || isNaN(parsedCourseId)) {
+        return (
+          <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href="/admin/courses">&larr; Back to Courses</Link>
+            </div>
+            <div style={{ 
+              padding: '20px', 
+              backgroundColor: '#f44336', 
+              color: 'white',
+              borderRadius: '4px'
+            }}>
+              Error: Valid Course ID is required to add a new year. 
+              <Link href="/admin/courses" style={{ color: 'white', textDecoration: 'underline', marginLeft: '5px' }}>
+                Select a course.
+              </Link>
+            </div>
+          </div>
+        );
+    }
+
+    // Get course info for breadcrumb
+    const courseInfo = await getCourseInfo(courseId);
+  
+    return (
+        <div>
+            <div style={{ margin: '0 0 20px 0' }}>
+              <Link href={`/admin/courses/${parsedCourseId}`}>
+                &larr; Back to Course: {courseInfo?.name || `ID: ${parsedCourseId}`}
+              </Link>
+            </div>
+            <h1>Add New Year</h1>
+            <YearForm isEditing={false} courseId={parsedCourseId} />
+            <div style={{ marginTop: '20px', color: '#666' }}>
+              <p>After creating a year, you&apos;ll be able to add semesters to it.</p>
+            </div>
+        </div>
+    );
+}
+
+export default function NewYearPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const courseId = typeof searchParams?.courseId === 'string' ? searchParams.courseId : undefined;
+  
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+        <PageContent courseId={courseId} />
+    </Suspense>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/years/YearForm.tsx
+==========================================
+
+'use client';
+
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+interface Year {
+  id?: number;
+  year: number;
+  courseId: number;
+}
+
+interface SuccessData {
+  id: number;
+  year: number;
+  courseId: number;
+}
+
+interface YearFormProps {
+  initialData?: Partial<Year> | null;
+  isEditing: boolean;
+  courseId?: number;
+}
+
+export default function YearForm({ initialData, isEditing, courseId: propCourseId }: YearFormProps) {
+  const [year, setYear] = useState<number | string>('');
+  const [currentCourseId, setCurrentCourseId] = useState<number | undefined>(propCourseId || initialData?.courseId);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setYear(initialData.year || '');
+    }
+    if (propCourseId) {
+        setCurrentCourseId(propCourseId);
+    }
+  }, [initialData, propCourseId]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
+
+    if (!currentCourseId) {
+        setError('Course ID is missing.');
+        setIsLoading(false);
+        return;
+    }
+    if (year === '') {
+        setError('Year is required.');
+        setIsLoading(false);
+        return;
+    }
+
+    const yearData = { year: parseInt(year as string, 10), courseId: currentCourseId };
+
+    try {
+      let response;
+      if (isEditing && initialData?.id) {
+        response = await fetch(`/api/years/${initialData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ year: yearData.year }),
+        });
+      } else {
+        response = await fetch('/api/years', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(yearData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} year`);
+      }
+      
+      // Show success message before redirecting
+      const result = await response.json();
+      setSuccessData(result);
+      setIsSuccess(true);
+      
+      // Delay redirect to show success message
+      setTimeout(() => {
+        router.push(isEditing ? `/admin/years/${result.id}` : `/admin/years/${result.id}`);
+        router.refresh();
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSuccess && successData) {
+    return (
+      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm leading-5 font-medium text-green-800">
+              Academic Year {successData.year} has been {isEditing ? 'updated' : 'created'} successfully! Redirecting...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
+          Academic Year <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          id="year"
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Enter year (e.g., 2025)"
+          required
+        />
+      </div>
+      
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+        >
+          {isLoading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            isEditing ? 'Update Year' : 'Create Year'
+          )}
+        </button>
+      </div>
+      
+      {!isEditing && (
+        <p className="mt-2 text-sm text-gray-500">
+          After creating this year, you'll be able to add semesters to it.
+        </p>
+      )}
+    </form>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/years/[yearId]/edit/page.tsx
+==========================================
+
+import React from 'react';
+import YearForm from '../../YearForm';
+import Link from 'next/link';
+import { fetchApi } from '@/app/lib/api';
+
+interface Year {
+  id: number;
+  year: number;
+  courseId: number;
+  course?: { name: string };
+}
+
+async function getYearById(id: string): Promise<Year | null> {
+  try {
+    const res = await fetch(`/api/years/${id}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch year: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function EditYearPage({ params }: { params: { yearId: string } }) {
+  const year = await getYearById(params.yearId);
+
+  if (!year) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white shadow-md rounded-lg p-6 text-center">
+          <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="mt-2 text-xl font-bold text-gray-900">Year not found</h2>
+          <p className="mt-1 text-gray-500">The academic year you are looking for does not exist.</p>
+          <Link 
+            href="/admin/courses" 
+            className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+          >
+            Return to Courses
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          {year.course && (
+            <li>
+              <div className="flex items-center">
+                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                </svg>
+                <Link href={`/admin/courses/${year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                  {year.course.name}
+                </Link>
+              </div>
+            </li>
+          )}
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/years/${year.id}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                Year {year.year}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Edit</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Edit Academic Year: {year.year}</h1>
+        <YearForm initialData={year} isEditing={true} />
+      </div>
+    </div>
+  );
+}
+
+
+==========================================
+FILE: src/app/admin/years/[yearId]/page.tsx
+==========================================
+
+import Link from 'next/link';
+import React from 'react';
+import { fetchApi } from '@/app/lib/api';
+
+interface Unit { id: number; name: string; }
+interface Semester { id: number; semester: string; units: Unit[]; }
+interface Course { id: number; name: string; }
+interface Year {
+  id: number;
+  year: number;
+  courseId: number;
+  course: Course;
+  semesters: Semester[];
+}
+
+async function getYearDetails(id: string): Promise<Year | null> {
+  try {
+    return await fetchApi<Year>(`/api/years/${id}`);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function YearDetailPage({ params }: { params: { yearId: string } }) {
+  const year = await getYearDetails(params.yearId);
+
+  if (!year) {
+    return (
+      <div className="bg-white shadow-md rounded-lg p-6 text-center">
+        <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 className="mt-2 text-xl font-bold text-gray-900">Year not found</h2>
+        <p className="mt-1 text-gray-500">The academic year you are looking for does not exist.</p>
+        <Link 
+          href="/admin/courses" 
+          className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+        >
+          Return to Courses
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex mb-5" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/admin/courses" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+              </svg>
+              Courses
+            </Link>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <Link href={`/admin/courses/${year.courseId}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-indigo-600 md:ml-2">
+                {year.course.name}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+              </svg>
+              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Year {year.year}</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      {/* Year header */}
+      <div className="md:flex md:items-center md:justify-between mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Academic Year: {year.year}
+          </h1>
+          <p className="mt-1 flex items-center text-sm text-gray-500">
+            <span className="truncate">Year ID: {year.id}</span>
+            <span className="ml-4 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              {year.semesters?.length || 0} semesters
+            </span>
+          </p>
+        </div>
+        <div className="mt-5 flex xl:mt-0 xl:ml-4">
+          <Link
+            href={`/admin/years/${year.id}/edit`}
+            className="mr-2 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            Edit Year
+          </Link>
+          <Link
+            href={`/admin/semesters/new?yearId=${year.id}`}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Semester
+          </Link>
+        </div>
+      </div>
+
+      {/* Semesters List */}
+      <div className="mt-8">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Semesters</h2>
+        
+        {year.semesters && year.semesters.length > 0 ? (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul className="divide-y divide-gray-200">
+              {year.semesters.map((semester) => (
+                <li key={semester.id}>
+                  <div className="px-4 py-5 sm:px-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                          <svg className="h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div className="ml-4">
+                          <Link 
+                            href={`/admin/semesters/${semester.id}`}
+                            className="text-lg font-medium text-purple-600 hover:text-purple-900"
+                          >
+                            {semester.semester}
+                          </Link>
+                          <p className="text-sm text-gray-500">
+                            {semester.units?.length || 0} units
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-3">
+                        <Link
+                          href={`/admin/semesters/${semester.id}/edit`}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <svg className="-ml-1 mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/admin/semesters/${semester.id}`}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <svg className="-ml-1 mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                          </svg>
+                          View
+                        </Link>
+                        <Link
+                          href={`/admin/units/new?semesterId=${semester.id}`}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                        >
+                          <svg className="-ml-1 mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H6a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                          </svg>
+                          Add Unit
+                        </Link>
+                      </div>
+                    </div>
+                    
+                    {/* Display units if available */}
+                    {semester.units && semester.units.length > 0 && (
+                      <div className="mt-4 ml-14">
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">Units:</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {semester.units.map((unit) => (
+                            <Link
+                              key={unit.id}
+                              href={`/admin/units/${unit.id}`}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
+                            >
+                              {unit.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <div className="px-4 py-5 sm:p-6 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No semesters found</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by creating a new semester.</p>
+              <div className="mt-6">
+                <Link
+                  href={`/admin/semesters/new?yearId=${year.id}`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add First Semester
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

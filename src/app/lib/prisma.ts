@@ -1,12 +1,11 @@
+// src/app/lib/prisma.ts
 import { PrismaClient } from '@prisma/client';
 
-// Define proper type for the global variable
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+// Prevent multiple instances of Prisma Client in development
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Use proper typing instead of any
-const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+const prisma = globalForPrisma.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export default prisma;

@@ -1,26 +1,32 @@
-// File: app/lib/api.ts
-
+// src/app/lib/api.ts
 /**
- * Helper function to fetch data from the API with proper error handling
+ * Fetch data from the API with improved error handling
  */
-export async function fetchApi<T>(endpoint: string): Promise<T> {
-  // Use the base URL from environment variables or default to relative path
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-  const url = endpoint.startsWith('/') ? `${baseUrl}${endpoint}` : `${baseUrl}/${endpoint}`;
-
-  // Set cache: 'no-store' for server-side fetching to always get fresh data
-  const response = await fetch(url, { 
-    cache: 'no-store',
-    next: { revalidate: 0 } // For Next.js 13+
-  });
-
-  if (!response.ok) {
-    // Handle HTTP errors
-    if (response.status === 404) {
-      throw new Error(`Not found: ${endpoint}`);
+export async function fetchApi<T = any>(endpoint: string): Promise<T> {
+  // Make sure the endpoint starts with a slash
+  const url = endpoint.startsWith('/') 
+    ? `${process.env.NEXT_PUBLIC_BASE_URL || ''}${endpoint}` 
+    : endpoint;
+  
+  try {
+    // Use absolute URL format
+    const absoluteUrl = new URL(
+      url,
+      process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    ).toString();
+    
+    const response = await fetch(absoluteUrl, {
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
-    throw new Error(`API error: ${response.statusText}`);
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    throw error;
   }
-
-  return response.json();
 }
